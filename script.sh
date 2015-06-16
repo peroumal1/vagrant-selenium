@@ -5,7 +5,7 @@
 echo "Install the packages..."
 #=========================================================
 sudo apt-get update
-sudo apt-get -y install fluxbox xorg unzip vim default-jre rungetty firefox
+sudo apt-get -y install unzip vim default-jre rungetty firefox xvfb
 
 #=========================================================
 echo "Set autologin for the Vagrant user..."
@@ -16,10 +16,14 @@ sudo echo "exec /sbin/rungetty --autologin vagrant tty1" >> /etc/init/tty1.conf
 #=========================================================
 echo -n "Start X on login..."
 #=========================================================
+SCREEN_WIDTH=1360
+SCREEN_HEIGHT=1020
+SCREEN_DEPTH=24
+DISPLAY=:99.0
+GEOMETRY="$SCREEN_WIDTH""x""$SCREEN_HEIGHT""x""$SCREEN_DEPTH"
 PROFILE_STRING=$(cat <<EOF
-if [ ! -e "/tmp/.X0-lock" ] ; then
-    startx
-fi
+xvfb-run --server-args="$DISPLAY -screen 0 $GEOMETRY -ac +extension RANDR" \
+    java -jar selenium-server-standalone.jar -Dwebdriver.chrome.driver=./chromedriver
 EOF
 )
 echo "${PROFILE_STRING}" >> .profile
@@ -48,39 +52,6 @@ wget "http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromed
 unzip chromedriver_linux64.zip
 sudo rm chromedriver_linux64.zip
 chown vagrant:vagrant chromedriver
-
-#=========================================================
-echo -n "Install tmux scripts..."
-#=========================================================
-TMUX_SCRIPT=$(cat <<EOF
-#!/bin/sh
-tmux start-server
-
-tmux new-session -d -s selenium
-tmux send-keys -t selenium:0 './chromedriver' C-m
-
-tmux new-session -d -s chrome-driver
-tmux send-keys -t chrome-driver:0 'java -jar selenium-server-standalone.jar' C-m
-EOF
-)
-echo "${TMUX_SCRIPT}"
-echo "${TMUX_SCRIPT}" > tmux.sh
-chmod +x tmux.sh
-chown vagrant:vagrant tmux.sh
-echo "ok"
-
-#=========================================================
-echo -n "Install startup scripts..."
-#=========================================================
-STARTUP_SCRIPT=$(cat <<EOF
-#!/bin/sh
-~/tmux.sh &
-xterm &
-EOF
-)
-echo "${STARTUP_SCRIPT}" > /etc/X11/Xsession.d/9999-common_start
-chmod +x /etc/X11/Xsession.d/9999-common_start
-echo "ok"
 
 #=========================================================
 echo -n "Add host alias..."
