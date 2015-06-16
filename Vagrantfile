@@ -9,6 +9,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", path: "script.sh"
 
   config.vm.provider :virtualbox do |vb|
-    vb.gui = true
+    if ENV['GUI'] != 'no'
+        vb.gui = true
+    else
+        vb.gui = false
+    end
   end
 end
